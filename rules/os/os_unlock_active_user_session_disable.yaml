@@ -9,13 +9,51 @@ discussion: |
 
   WARNING: This rule may cause issues when platformSSO is configured. 
 check: |
-  /usr/bin/security authorizationdb read system.login.screensaver 2>&1 | /usr/bin/grep -c '<string>$ODV</string>'
+  screensaver=$(/usr/bin/security -q authorizationdb read system.login.screensaver 2>&1 | /usr/bin/xmllint --xpath "//dict/key[.='rule']/following-sibling::array[1]/string/text()" -)
+
+  if [[ "${screensaver}" == "$ODV" ]]; then
+      echo "pass"
+      exit
+  elif [[ "${screensaver}" == "psso-screensaver-mscp" ]]; then
+      psso-mscp=$(/usr/bin/security -q authorizationdb read psso-screensaver-mscp 2>&1 | /usr/bin/xmllint --xpath '//key[.="rule"]/following-sibling::array[1]/string[text()="$ODV"]' - | /usr/bin/awk -F '>|<' '{print $3}')
+      if [[ "${psso-mscp}" == "$ODV" ]]; then
+          echo "pass"
+          exit
+      else
+          echo "fail"
+          exit
+      fi
+  else
+      echo "fail"
+      exit
+  fi
 result:
-  integer: 1
+  string: "pass"
 fix: |
   [source,bash]
   ----
-  /usr/bin/security authorizationdb write system.login.screensaver "$ODV"
+  screensaver=$(/usr/bin/security -q authorizationdb read system.login.screensaver 2>&1 | /usr/bin/xmllint --xpath "//dict/key[.='rule']/following-sibling::array[1]/string/text()" -)
+
+  if [[ "${screensaver}" == "$ODV" ]]; then
+      exit
+  elif [[ "${screensaver}" == "psso-screensaver-mscp" ]]; then
+      psso-mscp=$(/usr/bin/security -q authorizationdb read psso-screensaver-mscp 2>&1 | /usr/bin/xmllint --xpath '//key[.="rule"]/following-sibling::array[1]/string[text()="$ODV"]' - | /usr/bin/awk -F '>|<' '{print $3}')
+      if [[ "${psso-mscp}" == "$ODV" ]]; then
+          exit 0
+      else 
+          /usr/bin/security -q authorizationdb read psso-screensaver > "/tmp/psso-screensaver-mscp.plist"
+          /usr/bin/sed -i.bak 's/<string>authenticate-session-owner-or-admin<\/string>/<string>$ODV<\/string>/' /tmp/psso-screensaver-mscp.plist
+          /usr/bin/security -q authorizationdb write psso-screensaver-mscp < /tmp/psso-screensaver-mscp.plist
+          /usr/bin/security -q authorizationdb write system.login.screensaver psso-screensaver-mscp
+      fi
+  elif [[ "${screensaver}" == "psso-screensaver" ]]; then
+      /usr/bin/security -q authorizationdb read psso-screensaver > "/tmp/psso-screensaver-mscp.plist"
+      /usr/bin/sed -i.bak 's/<string>authenticate-session-owner-or-admin<\/string>/<string>$ODV<\/string>/' /tmp/psso-screensaver-mscp.plist
+      /usr/bin/security -q authorizationdb write psso-screensaver-mscp < /tmp/psso-screensaver-mscp.plist
+      /usr/bin/security -q authorizationdb write system.login.screensaver psso-screensaver-mscp
+  else
+      /usr/bin/security -q authorizationdb write system.login.screensaver "$ODV"
+  fi
   ----
 references:
   cce:
