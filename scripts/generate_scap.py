@@ -1423,18 +1423,18 @@ def generate_scap(all_rules, all_baselines, args, stig):
                     
                     if "grep" in rule_yaml['check'].split("|")[1]:
                         oval_definition = oval_definition + '''
-                        <definition id="oval:mscp:def:{}" version="1" class="compliance"> 
+                        <definition id="oval:mscp:def:{0}" version="1" class="compliance"> 
                     <metadata> 
-                        <title>{}</title> 
-                        <reference source="CCE" ref_id="{}"/>
-                        <reference source="macos_security" ref_id="{}"/>
-                        <description>{}</description> 
+                        <title>{1}</title> 
+                        <reference source="CCE" ref_id="{2}"/>
+                        <reference source="macos_security" ref_id="{3}"/>
+                        <description>{4}</description> 
                     </metadata> 
                 <criteria operator="OR">
-                    <criterion comment="{}" test_ref="oval:mscp:tst:{}" />
-                    <criterion comment="{}_sudoers.d" test_ref="oval:mscp:tst:{}"/>
+                    <criterion comment="{5}" test_ref="oval:mscp:tst:{6}" />
+                    <criterion comment="{7}_sudoers.d" test_ref="oval:mscp:tst:{8}"/>
                 </criteria>
-            </definition> '''.format(x,rule_yaml['title'],cce,rule_yaml['id'] + "_" + odv_label,rule_yaml['discussion'].replace("&","&amp;"),rule_yaml['id'] + "_" + odv_label,x,rule_yaml['id'] + "_" + odv_label, x, rule_yaml['id'] + "_" + odv_label,x+5051)
+            </definition> '''.format(x,rule_yaml['title'],cce,rule_yaml['id'] + "_" + odv_label,rule_yaml['discussion'].replace("&","&amp;"),rule_yaml['id'] + "_" + odv_label,x,rule_yaml['id'] + "_" + odv_label, x+5051)
                     
                         oval_test = oval_test + '''
                 <textfilecontent54_test id="oval:mscp:tst:{}" version="1" comment="{}_test" check_existence="all_exist" check="all" xmlns="http://oval.mitre.org/XMLSchema/oval-definitions-5#independent">
@@ -2998,7 +2998,7 @@ def generate_scap(all_rules, all_baselines, args, stig):
                     pass
                 try:
                     if "launchctl" in command[2] or "launchctl" in rule_yaml['fix']:
-                        if "disable" in command[2] and "=> true" in rule_yaml['check'] or "unload -w" in rule_yaml['fix'] or "disable" in command[2] and "=> disabled" in rule_yaml['check']:
+                        if ("disable" in command[2] and "=> true" in rule_yaml['check'] or "unload -w" in rule_yaml['fix'] or "disable" in command[2] and "=> disabled" in rule_yaml['check']) or ("disable" in rule_yaml['fix']):
                             oval_definition = oval_definition + '''
                 <definition id="oval:mscp:def:{}" version="1" class="compliance"> 
                     <metadata> 
@@ -3011,8 +3011,7 @@ def generate_scap(all_rules, all_baselines, args, stig):
                         <criterion comment="{}_plist" test_ref="oval:mscp:tst:{}" />
                         <criterion comment="{}_launchctl" test_ref="oval:mscp:tst:{}" />
                     </criteria>
-                </definition> '''.format(x,rule_yaml['title'],cce,rule_yaml['id'] + "_" + odv_label,rule_yaml['discussion'].rstrip(),rule_yaml['id'] + "_" + odv_label,x,rule_yaml['id'] + "_" + odv_label,x+999)
-
+                </definition> '''.format(x,rule_yaml['title'],cce,rule_yaml['id'] + "_" + odv_label,rule_yaml['discussion'].rstrip(),rule_yaml['id'] + "_" + odv_label,x,rule_yaml['id'] + "_" + odv_label,x+999)                            
                             oval_test = oval_test + '''
                 <plist511_test xmlns="http://oval.mitre.org/XMLSchema/oval-definitions-5#macos" check="all" check_existence="only_one_exists" comment="{}_plist_test" id="oval:mscp:tst:{}" version="2">
                     <object object_ref="oval:mscp:obj:{}" />
@@ -3025,9 +3024,11 @@ def generate_scap(all_rules, all_baselines, args, stig):
                             
                             domain = str()
                             if "launchctl" not in rule_yaml['check']:
-                                domain = rule_yaml['fix'].split()[4].split('/')[4].replace(".plist","")
-                                
-                            else:
+                                if "launchctl disable system/" in rule_yaml["fix"]:
+                                    domain = rule_yaml['fix'].split()[4].split('/')[1]
+                                else:
+                                    domain = rule_yaml['fix'].split()[4].split('/')[4].replace(".plist","")
+                            else:                                
                                 s = command[5].split()[2]
                                 domain = re.search('"(.*?)"', s).group(1)
                             
@@ -3050,7 +3051,7 @@ def generate_scap(all_rules, all_baselines, args, stig):
                     <value_of datatype="boolean" operation="equals">{}</value_of>
                 </plist511_state>'''.format(rule_yaml['id'] + "_" + odv_label,x,status)
                         
-                        elif "launchctl unload" in rule_yaml['fix']:
+                        elif "launchctl unload" in rule_yaml['fix'] or "launchctl disable" in rule_yaml['fix']:
                             oval_definition = oval_definition + '''
                 <definition id="oval:mscp:def:{}" version="1" class="compliance"> 
                     <metadata> 
@@ -3106,7 +3107,6 @@ def generate_scap(all_rules, all_baselines, args, stig):
                         <state state_ref="oval:mscp:ste:{}" />
                     </plist511_test>'''.format(rule_yaml['id'] + "_" + odv_label,x,x,x)
                             plist = rule_yaml['fix'].split(" ")[2].replace(".plist","")
-                            # plist = rule_yaml['check'].split("read")[1].split()[0].replace(".plist","")
                             
                             if "ByHost" in rule_yaml['fix'] or "currentHost" in rule_yaml['fix']:
                                 
@@ -3277,11 +3277,8 @@ def generate_scap(all_rules, all_baselines, args, stig):
 
                             x = x+1
                     
-                            continue
-
-
+                            continue                        
                         else:
-                            
                             oval_definition = oval_definition + '''
                 <definition id="oval:mscp:def:{}" version="1" class="compliance"> 
                         <metadata> 
@@ -3500,8 +3497,8 @@ def generate_scap(all_rules, all_baselines, args, stig):
             cmd = cmd + " " + scap_file + "temp --format --output " + scap_file
             
             os.popen(cmd).read()
-            # if os.path.exists(scap_file):
-                # os.remove(scap_file + "temp")    
+            if os.path.exists(scap_file):
+                os.remove(scap_file + "temp")    
 
 def get_rule_yaml(rule_file, custom=False, baseline_name=""):
     """ Takes a rule file, checks for a custom version, and returns the yaml for the rule
