@@ -1125,10 +1125,11 @@ generate_stats(){{
     count=($(compliance_count))
     compliant=${{count[1]}}
     non_compliant=${{count[2]}}
+    exempt_rules=${{count[3]}}
 
     total=$((non_compliant + compliant))
-    percentage=$(printf %.2f $(( compliant * 100. / total )) )
-    echo "PASSED: $compliant FAILED: $non_compliant, $percentage percent compliant!"
+    percentage=$(printf %.2f $(( (compliant + exempt_rules) * 100. / total )) )
+    echo "PASSED: $compliant FAILED: $non_compliant, EXEMPT: $exempt_rules - $percentage percent compliant!"
 }}
 
 run_scan(){{
