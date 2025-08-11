@@ -301,23 +301,7 @@ def generate_scap(all_rules, all_baselines, args, stig):
         for a in range(0, loop):
             
             rule_yaml = get_rule_yaml(rule_file, custom)
-            
-            # try:           
-            #     print("something")
-            #     # # odv_label = list(rule_yaml['odv'].keys())[a]
-            #     # # odv_label.remove('hint')
-            #     if args.baseline != "None":
-            #         odv_label = args.baseline
-            #         # print(odv_label)
-            #         if args.baseline not in list(rule_yaml['odv'].keys())[a]:
-            #             print("the list")
-            #             print(list(rule_yaml['odv'].keys())[a])
-            #             odv_label = "recommended"
-            #     # if args.baseline not in list(rule_yaml['odv'].keys())[a]:
-            #     #     odv_label = "recommended"
-            #     else:
-            #         print("hello?")
-            #         odv_label = list(rule_yaml['odv'].keys())[a]
+
             try:
                 odv_keys = list(rule_yaml['odv'].keys())
                 
@@ -525,6 +509,29 @@ def generate_scap(all_rules, all_baselines, args, stig):
                 continue
             
             else:
+                check_result = str()
+                for k,v in rule_yaml['result'].items():
+                    check_result = v
+                count_found = False
+                check_existance = "all_exist"
+                if "/usr/bin/grep -c" in rule_yaml['check']:
+                    rule_yaml['check'] = rule_yaml['check'].replace("/usr/bin/grep -c ", "/usr/bin/grep ").rstrip()
+                    count_found = True
+                    if check_result == 0:
+                        check_existance = "none_exist"
+
+                if "/usr/bin/wc -l" in rule_yaml['check']:
+                    new_test = []
+                    for command in rule_yaml['check'].split("|"):
+                        if "/usr/bin/wc -l" in command:
+                            break
+                        new_test.append(command.strip())
+                    count_found = True    
+                    rule_yaml['check'] = " | ".join(new_test)
+                    if check_result == 0:
+                        check_existance = "none_exist"
+                
+
                 oval_definition = oval_definition + '''
     <definition id="oval:mscp:def:{0}" version="1" class="compliance">
       <metadata>
@@ -538,14 +545,20 @@ def generate_scap(all_rules, all_baselines, args, stig):
       </criteria>
     </definition>'''.format(x,rule_yaml['title'],cce,rule_yaml['id'] + "_" + odv_label,escape(rule_yaml['discussion']),x)
 
+
                 if "$CURRENT_USER" in rule_yaml['check']:
                     rule_yaml['check'] = '''CURRENT_USER=$(/usr/bin/defaults read /Library/Preferences/com.apple.loginwindow.plist lastUserName)
-{}'''.format(rule_yaml['check'])                    
+{}'''.format(rule_yaml['check'])   
+
+                
+                oval_state_test = '''<state state_ref="oval:mscp:ste:{0}"/>'''.format(x)
+                if check_existance == "none_exist":
+                    oval_state_test = ""
                 oval_test = oval_test + '''
-    <shellcommand_test xmlns="http://oval.mitre.org/XMLSchema/oval-definitions-5#independent" id="oval:mscp:tst:{0}" version="1" comment="{1}_test" check_existence="all_exist" check="all">
+    <shellcommand_test xmlns="http://oval.mitre.org/XMLSchema/oval-definitions-5#independent" id="oval:mscp:tst:{0}" version="1" comment="{1}_test" check_existence="{2}" check="all">
       <object object_ref="oval:mscp:obj:{0}"/>
-      <state state_ref="oval:mscp:ste:{0}"/>
-    </shellcommand_test>'''.format(x,rule_yaml['id'] + "_" + odv_label)
+      {3}
+    </shellcommand_test>'''.format(x,rule_yaml['id'] + "_" + odv_label, check_existance, oval_state_test)
                 oval_object = oval_object + '''
   
     <shellcommand_object xmlns="http://oval.mitre.org/XMLSchema/oval-definitions-5#independent" id="oval:mscp:obj:{0}" version="1" comment="{1}_object">
@@ -553,13 +566,18 @@ def generate_scap(all_rules, all_baselines, args, stig):
      <command>{2}</command>
     </shellcommand_object>'''.format(x,rule_yaml['id'] + "_" + odv_label,escape(rule_yaml['check']))
 
-                check_result = str()
+                
 
-                for k,v in rule_yaml['result'].items():
-                    check_result = v
-
-                oval_state = oval_state + '''
-
+                
+                if count_found:
+                    if check_existance != "none_exist":
+                        oval_state = oval_state + '''
+    <shellcommand_state xmlns="http://oval.mitre.org/XMLSchema/oval-definitions-5#independent" id="oval:mscp:ste:{0}" version="1" comment="{1}_state">
+      <stdout_line operation="pattern match">.*</stdout_line>
+    </shellcommand_state>'''.format(x,rule_yaml['id'] + "_" + odv_label)
+                    
+                else:
+                    oval_state = oval_state + '''
     <shellcommand_state xmlns="http://oval.mitre.org/XMLSchema/oval-definitions-5#independent" id="oval:mscp:ste:{0}" version="1" comment="{1}_state">
       <stdout_line operation="equals">{2}</stdout_line>
     </shellcommand_state>'''.format(x,rule_yaml['id'] + "_" + odv_label,check_result)
