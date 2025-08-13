@@ -513,6 +513,10 @@ def generate_scap(all_rules, all_baselines, args, stig):
                 for k,v in rule_yaml['result'].items():
                     check_result = v
                 count_found = False
+
+                if " 2> /dev/null" in rule_yaml['check']:
+                    rule_yaml['check'] = rule_yaml['check'].replace(" 2> /dev/null","")
+
                 check_existance = "all_exist"
                 if "/usr/bin/grep -c" in rule_yaml['check']:
                     rule_yaml['check'] = rule_yaml['check'].replace("/usr/bin/grep -c ", "/usr/bin/grep ").rstrip()
@@ -552,8 +556,7 @@ def generate_scap(all_rules, all_baselines, args, stig):
 
                 
                 oval_state_test = '''<state state_ref="oval:mscp:ste:{0}"/>'''.format(x)
-                if check_existance == "none_exist":
-                    oval_state_test = ""
+                
                 oval_test = oval_test + '''
     <shellcommand_test xmlns="http://oval.mitre.org/XMLSchema/oval-definitions-5#independent" id="oval:mscp:tst:{0}" version="1" comment="{1}_test" check_existence="{2}" check="all">
       <object object_ref="oval:mscp:obj:{0}"/>
@@ -574,6 +577,11 @@ def generate_scap(all_rules, all_baselines, args, stig):
                         oval_state = oval_state + '''
     <shellcommand_state xmlns="http://oval.mitre.org/XMLSchema/oval-definitions-5#independent" id="oval:mscp:ste:{0}" version="1" comment="{1}_state">
       <stdout_line operation="pattern match">.*</stdout_line>
+    </shellcommand_state>'''.format(x,rule_yaml['id'] + "_" + odv_label)
+                    else:
+                        oval_state = oval_state + '''
+    <shellcommand_state xmlns="http://oval.mitre.org/XMLSchema/oval-definitions-5#independent" id="oval:mscp:ste:{0}" version="1" comment="{1}_state">
+      <stdout_line operation="pattern match">^$</stdout_line>
     </shellcommand_state>'''.format(x,rule_yaml['id'] + "_" + odv_label)
                     
                 else:
