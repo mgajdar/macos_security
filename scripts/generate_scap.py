@@ -519,7 +519,7 @@ def generate_scap(all_rules, all_baselines, args, stig):
 
                 check_existance = "all_exist"
                 if "/usr/bin/grep -c" in rule_yaml['check']:
-                    rule_yaml['check'] = rule_yaml['check'].replace("/usr/bin/grep -c ", "/usr/bin/grep ").rstrip()
+                    rule_yaml['check'] = rule_yaml['check'].replace("/usr/bin/grep -c ", "/usr/bin/grep ")
                     count_found = True
                     if check_result == 0:                        
                         check_existance = "none_exist"
@@ -565,7 +565,7 @@ def generate_scap(all_rules, all_baselines, args, stig):
     <shellcommand_object xmlns="http://oval.mitre.org/XMLSchema/oval-definitions-5#independent" id="oval:mscp:obj:{0}" version="1" comment="{1}_object">
      <shell>zsh</shell>
      <command>{2}</command>
-    </shellcommand_object>'''.format(x,rule_yaml['id'] + "_" + odv_label,escape(rule_yaml['check']))
+    </shellcommand_object>'''.format(x,rule_yaml['id'] + "_" + odv_label,escape(rule_yaml['check']).rstrip())
 
                 
 
