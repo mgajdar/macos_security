@@ -546,7 +546,7 @@ def generate_scap(all_rules, all_baselines, args, stig):
                             break
                         new_test.append(command.strip())
                     count_found = True
-                    print(new_test)    
+                    
                     rule_yaml['check'] = "|".join(new_test)
                     if check_result == 0:
                         check_existance = "none_exist"
