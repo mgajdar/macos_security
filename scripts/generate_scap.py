@@ -518,12 +518,27 @@ def generate_scap(all_rules, all_baselines, args, stig):
                     rule_yaml['check'] = rule_yaml['check'].replace(" 2> /dev/null","")
 
                 check_existance = "all_exist"
-                if "/usr/bin/grep -c" in rule_yaml['check'] and ( "echo \"1\"" not in rule_yaml['check'] or "echo \"0\"" not in rule_yaml['check'] or "/usr/bin/ssh -G" not in rule_yaml['check'] or "/usr/sbin/sshd -G" not in rule_yaml['check']):
-                    rule_yaml['check'] = rule_yaml['check'].replace("/usr/bin/grep -c ", "/usr/bin/grep ")
-                    count_found = True
-                    if check_result == 0:                        
-                        check_existance = "none_exist"
 
+
+                if "/usr/bin/grep -c" in rule_yaml['check']:
+                    if "echo \"1\"" not in rule_yaml['check'] or "echo \"0\"" not in rule_yaml['check']:
+                        if "/usr/bin/ssh -G ." not in rule_yaml['check']:
+                            if "auditd_enabled" not in rule_yaml['id']:
+                                if "/usr/sbin/sshd -G" not in rule_yaml['check']:
+                                
+                                    rule_yaml['check'] = rule_yaml['check'].replace("/usr/bin/grep -c ", "/usr/bin/grep ")
+                                    count_found = True
+                                    if check_result == 0:                        
+                                        check_existance = "none_exist"
+                    
+                                    
+                                        
+                if "launchctl list" in rule_yaml['check']:
+                    rule_yaml['check'] = rule_yaml['check'].replace("launchctl list", "launchctl print system")
+                    if "auditd_enabled" in rule_yaml['id']:
+                        rule_yaml['check'] = rule_yaml['check'].replace("/usr/bin/grep -c com.apple.auditd", "/usr/bin/grep -c '\"com.apple.auditd\" => enabled'")
+                        
+                            
                 if "/usr/bin/wc -l" in rule_yaml['check']:
                     new_test = []
                     for command in rule_yaml['check'].split("|"):
