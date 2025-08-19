@@ -518,7 +518,7 @@ def generate_scap(all_rules, all_baselines, args, stig):
                     rule_yaml['check'] = rule_yaml['check'].replace(" 2> /dev/null","")
 
                 check_existance = "all_exist"
-                if "/usr/bin/grep -c" in rule_yaml['check'] and ( "echo \"1\"" not in rule_yaml['check'] or "echo \"0\"" not in rule_yaml['check']) and ("/usr/bin/ssh -G" not in rule_yaml['check'] or "/usr/sbin/sshd -G" not in rule_yaml['check']):
+                if "/usr/bin/grep -c" in rule_yaml['check'] and ( "echo \"1\"" not in rule_yaml['check'] or "echo \"0\"" not in rule_yaml['check'] or "/usr/bin/ssh -G" not in rule_yaml['check'] or "/usr/sbin/sshd -G" not in rule_yaml['check']):
                     rule_yaml['check'] = rule_yaml['check'].replace("/usr/bin/grep -c ", "/usr/bin/grep ")
                     count_found = True
                     if check_result == 0:                        
